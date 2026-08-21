@@ -1,0 +1,27 @@
+{
+  "server": {
+    "host": "localhost",
+    "port": 25565,
+    "username": "AI_Alex",
+    "version": false,
+    "auth": "offline"
+  },
+  "rcon": {
+    "enabled": false,
+    "host": "localhost",
+    "port": 25575,
+    "password": ""
+  },
+  "ai": {
+    "provider": "groq",
+    "apiKey": "",
+    "baseUrl": "https://api.groq.com/openai/v1",
+    "model": "llama-3.3-70b-versatile",
+    "masterName": "Player",
+    "autonomousMode": true,
+    "autonomousIntervalSeconds": 12
+  },
+  "web": {
+    "port": 3000
+  }
+}

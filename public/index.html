@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎮 Minecraft Autonomous AI Agent Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Header Nav -->
+    <header class="header">
+      <div class="header-brand">
+        <span class="brand-icon">🤖</span>
+        <div>
+          <h1>Minecraft Autonomous AI Agent</h1>
+          <p class="brand-subtitle">Powered by Node.js, Mineflayer & Multi-LLM Autonomous Mind</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="status-badge" id="botStatusBadge">
+          <span class="status-dot offline" id="botStatusDot"></span>
+          <span id="botStatusText">Bot: Disconnected</span>
+        </div>
+        <div class="status-badge" id="rconStatusBadge">
+          <span class="status-dot offline" id="rconStatusDot"></span>
+          <span id="rconStatusText">RCON: Disconnected</span>
+        </div>
+        <div class="toggle-control">
+          <label class="switch">
+            <input type="checkbox" id="autonomousToggle" checked>
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">🧠 Free Will Mode</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="grid-layout">
+      <!-- Column 1: Perception & Mind -->
+      <section class="card glass">
+        <div class="card-header">
+          <h2>👁️ Environmental Perception</h2>
+          <span class="badge" id="botNameBadge">AI_Alex</span>
+        </div>
+        <div class="card-body">
+          <div class="stats-row">
+            <div class="stat-box">
+              <span class="stat-label">Position (X, Y, Z)</span>
+              <span class="stat-value highlight" id="statPos">--</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Health & Food</span>
+              <div class="progress-bars">
+                <div class="bar-container">
+                  <span class="bar-label">❤️ <span id="statHealth">20/20</span></span>
+                  <div class="bar"><div class="bar-fill health" id="barHealth" style="width: 100%;"></div></div>
+                </div>
+                <div class="bar-container">
+                  <span class="bar-label">🍗 <span id="statFood">20/20</span></span>
+                  <div class="bar"><div class="bar-fill food" id="barFood" style="width: 100%;"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-pills">
+            <div class="pill">☀️ Time: <strong id="statTime">--</strong></div>
+            <div class="pill">🌧️ Weather: <strong id="statWeather">--</strong></div>
+            <div class="pill">🗡️ Held: <strong id="statHeld">--</strong></div>
+            <div class="pill">👤 Master: <strong id="statMaster">--</strong></div>
+          </div>
+
+          <div class="section-divider"></div>
+
+          <h3>📍 Nearby Entities & Surroundings</h3>
+          <ul class="perception-list" id="entitiesList">
+            <li class="empty-msg">No entities detected yet. Connect bot to server.</li>
+          </ul>
+
+          <div class="section-divider"></div>
+
+          <h3>🎒 Inventory Snapshot</h3>
+          <div class="inventory-grid" id="inventoryGrid">
+            <span class="empty-msg">Empty inventory</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Column 2: AI Brain & Chat -->
+      <section class="card glass">
+        <div class="card-header">
+          <h2>🧠 AI Autonomous Mind</h2>
+          <span class="badge ai-badge" id="aiProviderBadge">Groq</span>
+        </div>
+        <div class="card-body">
+          <div class="thought-box">
+            <div class="thought-header">
+              <span>Current Goal: <strong id="currentGoalText">Observing environment</strong></span>
+              <span class="thinking-spinner hidden" id="thinkingSpinner">🔄 Thinking...</span>
+            </div>
+            <p class="thought-text" id="internalThoughtText">"I am waiting for connection to start exploring!"</p>
+          </div>
+
+          <div class="section-divider"></div>
+
+          <h3>💬 Interactive Agent Chat</h3>
+          <div class="chat-container" id="chatContainer">
+            <div class="chat-bubble system">
+              <span class="chat-sender">System:</span>
+              <span class="chat-msg">Welcome to the AI Agent Dashboard! Connect the bot to start chatting and playing together.</span>
+            </div>
+          </div>
+          <div class="chat-input-bar">
+            <input type="text" id="chatInput" placeholder="Give Alex an instruction or chat..." autocomplete="off">
+            <button class="btn btn-primary" id="btnSendChat">Send ➤</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Column 3: Quick Actions & Configuration -->
+      <section class="card glass">
+        <div class="card-header">
+          <h2>⚡ Quick Actions & Control</h2>
+        </div>
+        <div class="card-body">
+          <div class="quick-grid">
+            <button class="btn btn-action" data-action="time_day">☀️ Set Day</button>
+            <button class="btn btn-action" data-action="time_night">🌙 Set Night</button>
+            <button class="btn btn-action" data-action="weather_clear">🌧️ Clear Weather</button>
+            <button class="btn btn-action" data-action="heal_master">❤️ Heal Master</button>
+            <button class="btn btn-action" data-action="give_diamond">💎 Give Diamond</button>
+            <button class="btn btn-action" data-action="follow_me">🚶 Follow Me</button>
+            <button class="btn btn-action" data-action="wander">🗺️ Wander Around</button>
+            <button class="btn btn-action" data-action="build_house">🏠 Build House</button>
+            <button class="btn btn-action btn-danger" data-action="stop">🛑 Stop Bot</button>
+          </div>
+
+          <div class="section-divider"></div>
+
+          <h3>⚙️ Connection & AI Settings</h3>
+          <form id="configForm" class="config-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Server IP</label>
+                <input type="text" id="cfgServerHost" value="localhost">
+              </div>
+              <div class="form-group">
+                <label>Port</label>
+                <input type="number" id="cfgServerPort" value="25565">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Bot Username</label>
+                <input type="text" id="cfgBotName" value="AI_Alex">
+              </div>
+              <div class="form-group">
+                <label>Your Username</label>
+                <input type="text" id="cfgMasterName" value="Player">
+              </div>
+            </div>
+
+            <div class="btn-group">
+              <button type="button" class="btn btn-success" id="btnConnectBot">🔌 Connect Bot</button>
+              <button type="button" class="btn btn-secondary" id="btnDisconnectBot">🔴 Disconnect</button>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="form-group">
+              <label>AI Provider</label>
+              <select id="cfgAiProvider">
+                <option value="groq">Groq (Ultra-Fast)</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="local">Local (Ollama / LM Studio)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>API Key</label>
+              <input type="password" id="cfgAiKey" placeholder="Enter API Key">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Model Name</label>
+                <input type="text" id="cfgAiModel" value="llama-3.3-70b-versatile">
+              </div>
+              <div class="form-group">
+                <label>Base URL</label>
+                <input type="text" id="cfgAiBaseUrl" value="https://api.groq.com/openai/v1">
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-outline" id="btnSaveAi">💾 Save AI Settings</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom: Live Activity Stream -->
+    <footer class="footer-card glass">
+      <div class="card-header compact">
+        <h3>📜 Live Event & Action Stream</h3>
+        <span class="clear-log" id="btnClearLog">Clear Log</span>
+      </div>
+      <div class="log-stream" id="logStream">
+        <div class="log-entry">[00:00:00] Dashboard loaded. Ready for connection.</div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

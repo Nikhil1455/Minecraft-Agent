@@ -1,19 +1,28 @@
-```
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Node dependencies
+node_modules/
+jspm_packages/
 
 # Logs
 *.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Environment
+# Environment and secrets
 .env
 .env.local
-*.env.*
+.env.*
+!.env.example
 
-# Dependencies
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Legacy Python
+__pycache__/
+*.pyc
 venv/
 .venv/
-```
