@@ -1,9 +1,17 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import axios from 'axios';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const defaultMemoryPath = path.join(__dirname, '../../agent_memory.json');
+
 export class AIBrain {
-  constructor(agentBot, rconService = null) {
+  constructor(agentBot, rconService = null, memoryFilePath = defaultMemoryPath) {
     this.agentBot = agentBot;
     this.rcon = rconService;
+    this.memoryFilePath = memoryFilePath;
     this.provider = 'groq';
     this.apiKey = '';
     this.baseUrl = 'https://api.groq.com/openai/v1';
@@ -13,10 +21,38 @@ export class AIBrain {
     this.autonomousIntervalSeconds = 12;
 
     this.memory = [];
+    this.loadMemory();
     this.lastThought = 'Initializing brain...';
     this.currentGoal = 'Wandering and observing';
     this.autonomousTimer = null;
     this.isThinking = false;
+  }
+
+  loadMemory() {
+    try {
+      if (fs.existsSync(this.memoryFilePath)) {
+        const raw = fs.readFileSync(this.memoryFilePath, 'utf8').trim();
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            this.memory = parsed;
+            console.log(`[AI Brain] Loaded ${this.memory.length} entries from agent_memory.json`);
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[AI Brain] Could not read agent_memory.json:', e.message);
+    }
+    this.memory = [];
+  }
+
+  saveMemory() {
+    try {
+      fs.writeFileSync(this.memoryFilePath, JSON.stringify(this.memory, null, 2), 'utf8');
+    } catch (e) {
+      console.error('[AI Brain] Failed to write agent_memory.json:', e.message);
+    }
   }
 
   configure(config) {
@@ -47,9 +83,10 @@ export class AIBrain {
 
   addMemory(role, content) {
     this.memory.push({ role, content, timestamp: new Date().toISOString() });
-    if (this.memory.length > 15) {
+    if (this.memory.length > 20) {
       this.memory.shift();
     }
+    this.saveMemory();
   }
 
   restartAutonomousLoop() {
@@ -180,8 +217,19 @@ If no physical action is needed, return empty actions array [].
       try {
         parsed = JSON.parse(aiRaw);
       } catch (pe) {
-        console.error('[AI Parse Error] Raw content:', aiRaw);
-        parsed = { thought: 'I had a stray thought.', chat_response: '', actions: [] };
+        // Fallback: Try regex matching first JSON object if surrounded by markdown or commentary
+        const jsonMatch = aiRaw.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            parsed = JSON.parse(jsonMatch[0]);
+          } catch (pe2) {
+            console.error('[AI Parse Error] Raw content:', aiRaw);
+            parsed = { thought: 'I had a stray thought.', chat_response: '', actions: [] };
+          }
+        } else {
+          console.error('[AI Parse Error] Raw content:', aiRaw);
+          parsed = { thought: 'I had a stray thought.', chat_response: '', actions: [] };
+        }
       }
 
       if (parsed.thought) {

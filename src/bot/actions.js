@@ -1,6 +1,6 @@
 import pkg from 'mineflayer-pathfinder';
 const { goals } = pkg;
-const { GoalNear, GoalBlock, GoalFollow, GoalXZ } = goals;
+const { GoalNear, GoalBlock, GoalFollow, GoalXZ, GoalGetToBlock, GoalLookAtBlock } = goals;
 
 export class ActionController {
   constructor(bot, rconService = null) {
@@ -39,10 +39,12 @@ export class ActionController {
     try {
       this.currentTask = `walking to ${x}, ${y}, ${z}`;
       const goal = new GoalNear(x, y, z, range);
-      this.bot.pathfinder.setGoal(goal);
+      await this.bot.pathfinder.goto(goal);
+      this.currentTask = 'idle';
       return true;
     } catch (e) {
-      console.error('[Action Error] walkTo:', e.message);
+      console.warn(`[Action Warning] walkTo (${x}, ${y}, ${z}):`, e.message);
+      this.currentTask = 'idle';
       return false;
     }
   }
@@ -86,15 +88,23 @@ export class ActionController {
   async lookAt(x, y, z) {
     if (!this.bot || !this.bot.lookAt) return;
     try {
-      const Vec3 = (await import('vec3')).Vec3;
-      await this.bot.lookAt(new Vec3(x, y, z));
+      let Vec3;
+      try {
+        const vecPkg = await import('vec3');
+        Vec3 = vecPkg.Vec3 || vecPkg.default;
+      } catch (_) {
+        Vec3 = this.bot.entity?.position?.constructor;
+      }
+      if (Vec3) {
+        await this.bot.lookAt(new Vec3(x, y, z));
+      }
     } catch (e) {
       console.error('[Action Error] lookAt:', e.message);
     }
   }
 
   async mineBlock(blockName) {
-    if (!this.bot) return false;
+    if (!this.bot || !this.bot.pathfinder) return false;
     try {
       const mcData = this.bot.registry || (await import('minecraft-data')).default(this.bot.version);
       const blockType = mcData.blocksByName[blockName];
@@ -105,7 +115,7 @@ export class ActionController {
 
       const targetBlock = this.bot.findBlock({
         matching: blockType.id,
-        maxDistance: 16
+        maxDistance: 24
       });
 
       if (!targetBlock) {
@@ -113,14 +123,42 @@ export class ActionController {
         return false;
       }
 
-      this.currentTask = `mining ${blockName}`;
-      this.bot.pathfinder.setGoal(new GoalBlock(targetBlock.position.x, targetBlock.position.y, targetBlock.position.z));
-      await this.bot.dig(targetBlock);
-      this.say(`Finished mining ${blockName}!`);
-      this.currentTask = 'idle';
-      return true;
+      this.currentTask = `moving to ${blockName}`;
+      
+      // Auto-equip appropriate tool if available
+      const items = this.bot.inventory?.items() || [];
+      const tool = items.find(i => 
+        i.name.includes('pickaxe') || i.name.includes('axe') || i.name.includes('shovel')
+      );
+      if (tool) {
+        try {
+          await this.bot.equip(tool, 'hand');
+        } catch (_) {}
+      }
+
+      // Navigate to block
+      const TargetGoal = GoalGetToBlock || GoalLookAtBlock;
+      const goal = TargetGoal
+        ? new TargetGoal(targetBlock.position.x, targetBlock.position.y, targetBlock.position.z)
+        : new GoalNear(targetBlock.position.x, targetBlock.position.y, targetBlock.position.z, 2);
+
+      await this.bot.pathfinder.goto(goal);
+
+      // Verify reachability and dig
+      if (this.bot.canDigBlock(targetBlock)) {
+        this.currentTask = `mining ${blockName}`;
+        await this.bot.dig(targetBlock);
+        this.say(`Finished mining ${blockName}!`);
+        this.currentTask = 'idle';
+        return true;
+      } else {
+        this.say(`Reached ${blockName}, but cannot reach it to dig.`);
+        this.currentTask = 'idle';
+        return false;
+      }
     } catch (e) {
       console.error('[Action Error] mineBlock:', e.message);
+      this.currentTask = 'idle';
       return false;
     }
   }
@@ -145,7 +183,7 @@ export class ActionController {
   }
 
   async attackTarget(targetName) {
-    if (!this.bot) return false;
+    if (!this.bot || !this.bot.pathfinder) return false;
     try {
       let targetEntity = null;
       for (const id in this.bot.entities) {
@@ -160,11 +198,28 @@ export class ActionController {
         return false;
       }
       this.currentTask = `attacking ${targetName}`;
-      await this.walkTo(targetEntity.position.x, targetEntity.position.y, targetEntity.position.z, 2);
+
+      // Auto-equip best weapon from inventory
+      const items = this.bot.inventory ? this.bot.inventory.items() : [];
+      const weapon = items.find(i => i.name.endsWith('_sword')) || items.find(i => i.name.endsWith('_axe'));
+      if (weapon) {
+        try {
+          await this.bot.equip(weapon, 'hand');
+        } catch (_) {}
+      }
+
+      // Approach target within strike range
+      try {
+        const goal = new GoalNear(targetEntity.position.x, targetEntity.position.y, targetEntity.position.z, 2);
+        await this.bot.pathfinder.goto(goal);
+      } catch (_) {}
+
       await this.bot.attack(targetEntity);
+      this.currentTask = 'idle';
       return true;
     } catch (e) {
       console.error('[Action Error] attackTarget:', e.message);
+      this.currentTask = 'idle';
       return false;
     }
   }

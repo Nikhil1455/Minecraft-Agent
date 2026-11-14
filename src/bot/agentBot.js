@@ -1,8 +1,15 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import mineflayer from 'mineflayer';
 import pkg from 'mineflayer-pathfinder';
 const { pathfinder, Movements } = pkg;
 import { PerceptionEngine } from './perception.js';
 import { ActionController } from './actions.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const logFilePath = path.join(__dirname, '../../agent_actions.log');
 
 export class AgentBot {
   constructor(rconService = null) {
@@ -12,16 +19,22 @@ export class AgentBot {
     this.rcon = rconService;
     this.isConnected = false;
     this.config = null;
+    this.lastDeathPosition = null;
     this.onChatCallback = null;
     this.onStatusCallback = null;
     this.onLogCallback = null;
   }
 
   log(msg) {
-    console.log(`[Bot] ${msg}`);
+    const timestamp = new Date().toISOString();
+    const formatted = `[${timestamp}] [Bot] ${msg}`;
+    console.log(formatted);
     if (this.onLogCallback) {
       this.onLogCallback(msg);
     }
+    try {
+      fs.appendFileSync(logFilePath, `${formatted}\n`, 'utf8');
+    } catch (_) {}
   }
 
   connect(config) {
@@ -88,7 +101,18 @@ export class AgentBot {
       });
 
       this.bot.on('death', () => {
-        this.log(`💀 Bot died! Auto-respawning in 2 seconds...`);
+        const deathPos = this.bot.entity?.position;
+        if (deathPos) {
+          this.lastDeathPosition = {
+            x: Math.round(deathPos.x * 10) / 10,
+            y: Math.round(deathPos.y * 10) / 10,
+            z: Math.round(deathPos.z * 10) / 10
+          };
+          this.log(`💀 Bot died at coordinates: X=${this.lastDeathPosition.x}, Y=${this.lastDeathPosition.y}, Z=${this.lastDeathPosition.z}`);
+        } else {
+          this.log(`💀 Bot died!`);
+        }
+        this.log(`Auto-respawning in 2 seconds...`);
         setTimeout(() => {
           if (this.bot) this.bot.respawn();
         }, 2000);
@@ -128,6 +152,8 @@ export class AgentBot {
 
   getSnapshot() {
     if (!this.perception) return { status: 'disconnected' };
-    return this.perception.getSnapshot();
+    const snapshot = this.perception.getSnapshot();
+    snapshot.lastDeathPosition = this.lastDeathPosition;
+    return snapshot;
   }
 }
